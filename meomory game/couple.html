@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Couples Challenge Game</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #fff0e0;
+      color: #6d4b1b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    input, textarea {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #d3a15f;
+      width: 90%;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #ffb347;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ffaa10;
+    }
+    #lobby, #setup, #game, #end, #setup2, #switchScreen {
+      display: none;
+      text-align: center;
+      width: 90%;
+      max-width: 600px;
+    }
+    #lobby {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div id="lobby">
+  <h1>Couples Challenge Game</h1>
+  <button id="proceedToSetup">Player 1 Setup</button>
+</div>
+
+<div id="setup">
+  <h2>Player 1: Tell us about yourself!</h2>
+  <input placeholder="Name" id="p1name">
+  <textarea placeholder="3 fun facts (comma separated)" id="p1facts"></textarea>
+  <input placeholder="1 silly lie" id="p1lie">
+  <button id="submitP1">Submit</button>
+</div>
+
+<div id="switchScreen">
+  <h2>Now hand over the device to Player 2!</h2>
+  <p>No peeking! 😜</p>
+  <button id="toSetup2">Continue</button>
+</div>
+
+<div id="setup2">
+  <h2>Player 2: Now it's your turn!</h2>
+  <input placeholder="Name" id="p2name">
+  <textarea placeholder="3 fun facts (comma separated)" id="p2facts"></textarea>
+  <input placeholder="1 silly lie" id="p2lie">
+  <button id="submitSetup">Submit & Start Game</button>
+</div>
+
+<div id="game">
+  <h2 id="challengeTitle"></h2>
+  <div id="challengeContent"></div>
+  <div id="timer">Time Left: <span id="timeLeft">60</span> seconds</div>
+  <button id="nextChallenge" style="display:none;">Next Challenge</button>
+  <div id="scoreboard"></div>
+</div>
+
+<div id="end">
+  <h2>Game Over!</h2>
+  <h3 id="finalTitle"></h3>
+  <button id="restartGame">Play Again</button>
+</div>
+
+<script>
+let p1 = {}, p2 = {};
+let player1Name, player2Name, score1 = 0, score2 = 0;
+let currentChallengeIndex = 0, timer;
+
+const lobby = document.getElementById('lobby');
+const setup = document.getElementById('setup');
+const setup2 = document.getElementById('setup2');
+const switchScreen = document.getElementById('switchScreen');
+const game = document.getElementById('game');
+const end = document.getElementById('end');
+
+const challengeTitle = document.getElementById('challengeTitle');
+const challengeContent = document.getElementById('challengeContent');
+const timerDisplay = document.getElementById('timeLeft');
+const nextChallengeButton = document.getElementById('nextChallenge');
+const scoreboardDiv = document.getElementById('scoreboard');
+const finalTitle = document.getElementById('finalTitle');
+
+const proceedToSetup = document.getElementById('proceedToSetup');
+const submitP1 = document.getElementById('submitP1');
+const toSetup2 = document.getElementById('toSetup2');
+const submitSetup = document.getElementById('submitSetup');
+const restartGameButton = document.getElementById('restartGame');
+
+proceedToSetup.onclick = () => {
+  lobby.style.display = 'none';
+  setup.style.display = 'block';
+};
+
+submitP1.onclick = () => {
+  p1.name = document.getElementById('p1name').value || 'Player 1';
+  p1.facts = document.getElementById('p1facts').value.split(',');
+  p1.lie = document.getElementById('p1lie').value;
+  setup.style.display = 'none';
+  switchScreen.style.display = 'block';
+};
+
+toSetup2.onclick = () => {
+  switchScreen.style.display = 'none';
+  setup2.style.display = 'block';
+};
+
+submitSetup.onclick = () => {
+  p2.name = document.getElementById('p2name').value || 'Player 2';
+  p2.facts = document.getElementById('p2facts').value.split(',');
+  p2.lie = document.getElementById('p2lie').value;
+  player1Name = p1.name;
+  player2Name = p2.name;
+  setup2.style.display = 'none';
+  game.style.display = 'block';
+  startChallenge();
+};
+
+const challenges = [
+  {
+    title: "Flirt or Fib: Player 1",
+    content: () => {
+      const options = [...p1.facts, p1.lie].sort(() => Math.random() - 0.5);
+      const correctIndex = options.indexOf(p1.lie);
+      return {
+        html: options.map((opt, i) => `<label><input type='radio' name='fib' value='${i}'> ${opt.trim()}</label><br>`).join('') +
+              `<button onclick='checkFib(${correctIndex}, 1)'>Submit</button><div id='fibFeedback'></div>`
+      };
+    }
+  },
+  {
+    title: "Flirt or Fib: Player 2",
+    content: () => {
+      const options = [...p2.facts, p2.lie].sort(() => Math.random() - 0.5);
+      const correctIndex = options.indexOf(p2.lie);
+      return {
+        html: options.map((opt, i) => `<label><input type='radio' name='fib' value='${i}'> ${opt.trim()}</label><br>`).join('') +
+              `<button onclick='checkFib(${correctIndex}, 2)'>Submit</button><div id='fibFeedback'></div>`
+      };
+    }
+  },
+  {
+    title: "Act It Out!",
+    content: () => {
+      const prompts = [
+        "Act like you're jealous of a pizza.",
+        "Pretend you're proposing with a potato.",
+        "Act as if you lost your partner in a supermarket."
+      ];
+      const chosen = prompts[Math.floor(Math.random() * prompts.length)];
+      return {
+        html: `<p>${chosen}</p><p><em>Act it out while your partner laughs!</em></p>`
+      };
+    }
+  }
+];
+
+function startChallenge() {
+  updateScoreboard();
+  if (currentChallengeIndex < challenges.length) {
+    const challenge = challenges[currentChallengeIndex];
+    challengeTitle.textContent = challenge.title;
+    const result = challenge.content();
+    challengeContent.innerHTML = result.html;
+    startTimer();
+  } else {
+    endGame();
+  }
+}
+
+function startTimer() {
+  let timeLeft = 60;
+  timerDisplay.textContent = timeLeft;
+  clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      nextChallengeButton.style.display = 'block';
+    }
+  }, 1000);
+}
+
+nextChallengeButton.onclick = () => {
+  clearInterval(timer);
+  currentChallengeIndex++;
+  nextChallengeButton.style.display = 'none';
+  startChallenge();
+};
+
+function checkFib(correctIndex, player) {
+  const selected = document.querySelector('input[name="fib"]:checked');
+  const feedback = document.getElementById('fibFeedback');
+  if (!selected) {
+    feedback.textContent = "❗ Please select an answer.";
+    return;
+  }
+  const answer = parseInt(selected.value);
+  if (answer === correctIndex) {
+    feedback.textContent = "✅ Correct! You know your partner well!";
+    if (player === 1) score2++; else score1++;
+    updateScoreboard();
+  } else {
+    feedback.textContent = "❌ Oops! That was true!";
+  }
+  nextChallengeButton.style.display = 'block';
+  clearInterval(timer);
+}
+
+function updateScoreboard() {
+  scoreboardDiv.innerHTML = `${player1Name}: ${score1} ❤️ | ${player2Name}: ${score2} 💙`;
+}
+
+function endGame() {
+  game.style.display = 'none';
+  end.style.display = 'block';
+  finalTitle.textContent = `${player1Name} & ${player2Name} – Final Score: ${score1 + score2} points!`;
+}
+
+restartGameButton.onclick = () => {
+  currentChallengeIndex = 0;
+  score1 = 0;
+  score2 = 0;
+  end.style.display = 'none';
+  lobby.style.display = 'block';
+};
+</script>
+</body>
+</html>

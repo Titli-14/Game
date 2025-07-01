@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pure Frontend P2P Two-Player Trivia Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 12px;
+    background: linear-gradient(135deg, #283048, #859398);
+    color: #eee;
+  }
+  h1,h2,h3 {
+    text-align: center;
+  }
+  #container {
+    max-width: 600px;
+    margin: auto;
+    background: #1c1f25;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  textarea, input[type=text] {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 6px 0;
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: none;
+    background: #2c2f36;
+    color: #eee;
+    font-family: monospace;
+  }
+  button {
+    background-color: #4267b2;
+    color: white;
+    border: none;
+    outline: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 8px;
+    width: 100%;
+  }
+  button:disabled {
+    background-color: #6a7aaf;
+    cursor: not-allowed;
+  }
+  #signalArea, #gameArea {
+    margin-top: 16px;
+  }
+  #playersArea {
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  #gameControls button.choice {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    background: #4169e1;
+    transition: background 0.3s ease;
+  }
+  #gameControls button.choice:hover {
+    background: #254fa8;
+  }
+  #gameControls button.choice:disabled {
+    background: #757de8;
+    cursor: not-allowed;
+  }
+  #scoreboard {
+    margin-top: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+  }
+  #messages {
+    margin-top: 8px;
+    min-height: 40px;
+    text-align: center;
+    font-style: italic;
+  }
+  .activePlayer {
+    font-weight: bolder;
+    color: #ffd700;
+  }
+</style>
+</head>
+<body>
+  <div id="container">
+    <h1>Pure Frontend P2P Two-Player Trivia</h1>
+    <div id="setupArea">
+      <p>
+        <strong>Instructions:</strong><br>
+        Player 1 creates the game, copies the offer below, and shares it with Player 2.<br>
+        Player 2 pastes that offer here, clicks "Join Game", copies the generated answer, and shares it back.<br>
+        Player 1 pastes the answer below and clicks "Connect".<br>
+        Then start playing!
+      </p>
+
+      <label>Your Name:</label>
+      <input type="text" id="yourName" placeholder="Enter your name" />
+
+      <button id="createBtn">Create Game (Player 1)</button>
+      <button id="joinBtn">Join Game (Player 2)</button>
+
+      <div id="signalArea" style="display:none;">
+        <label>Signal Data (Paste / Copy):</label>
+        <textarea id="signalText" rows="7" placeholder="Paste offer or answer here"></textarea>
+        <button id="submitSignalBtn">Submit Signal Data</button>
+      </div>
+    </div>
+
+    <div id="playersArea" style="display:none;">
+      <div><strong>Player 1:</strong> <span id="player1Name">N/A</span></div>
+      <div><strong>Player 2:</strong> <span id="player2Name">N/A</span></div>
+    </div>
+
+    <div id="gameArea" style="display:none;">
+      <h2>Trivia Challenge</h2>
+      <div>
+        <strong>Current turn:</strong> <span id="activePlayerName"></span>
+      </div>
+      <div id="question" style="margin:15px 0; font-size: 1.2em; min-height: 60px;"></div>
+      <div id="gameControls"></div>
+      <button id="nextTurnBtn" style="margin-top:10px; display:none;">Next</button>
+      <div id="scoreboard"></div>
+      <div id="messages"></div>
+    </div>
+  </div>
+
+<script>
+  // List 25 hard questions
+  const QUESTIONS = [
+    { question:"Who is known as the 'Father of Geometry'?", choices:["Euclid", "Pythagoras", "Archimedes", "Newton"], answer:0 },
+    { question:"What year did the Titanic sink?", choices:["1910", "1912", "1905", "1920"], answer:1 },
+    { question:"Which element has atomic number 79?", choices:["Silver", "Gold", "Mercury", "Copper"], answer:1 },
+    { question:"The Eiffel Tower is located in which city?", choices:["Berlin", "Paris", "Rome", "London"], answer:1 },
+    { question:"What is square root of 256?", choices:["12", "14", "16", "18"], answer:2 },
+    { question:"Who painted the Mona Lisa?", choices:["Michelangelo", "Da Vinci", "Raphael", "Van Gogh"], answer:1 },
+    { question:"Capital of Japan?", choices:["Seoul", "Beijing", "Tokyo", "Bangkok"], answer:2 },
+    { question:"Which planet is known as the Red Planet?", choices:["Earth", "Mars", "Jupiter", "Saturn"], answer:1 },
+    { question:"Largest mammal in the world?", choices:["Elephant","Blue Whale","Giraffe","Great White Shark"], answer:1 },
+    { question:"Chemical symbol for Iron?", choices:["Fe","Ir","I","In"], answer:0 },
+    { question:"Who wrote 'Pride and Prejudice'?", choices:["Charlotte Brontë","Jane Austen","Emily Brontë","Mark Twain"], answer:1 },
+    { question:"Hardest natural substance?", choices:["Gold","Iron","Diamond","Quartz"], answer:2 },
+    { question:"Most abundant gas in atmosphere?", choices:["Oxygen","Hydrogen","Nitrogen","Carbon Dioxide"], answer:2 },
+    { question:"Capital of Australia?", choices:["Sydney","Melbourne","Canberra","Brisbane"], answer:2 },
+    { question:"Largest human organ?", choices:["Heart","Liver","Skin","Lungs"], answer:2 },
+    { question:"Country known as Land of the Rising Sun?", choices:["China","Japan","Thailand","South Korea"], answer:1 },
+    { question:"Main ingredient in guacamole?", choices:["Tomato","Avocado","Pepper","Onion"], answer:1 },
+    { question:"Smallest country?", choices:["Monaco","Vatican City","San Marino","Liechtenstein"], answer:1 },
+    { question:"Closest planet to sun?", choices:["Venus","Earth","Mercury","Mars"], answer:2 },
+    { question:"Longest river?", choices:["Amazon","Nile","Yangtze","Mississippi"], answer:1 },
+    { question:"Discoverer of penicillin?", choices:["Marie Curie","Alexander Fleming","Louis Pasteur","Isaac Newton"], answer:1 },
+    { question:"Capital of Canada?", choices:["Toronto","Ottawa","Vancouver","Montreal"], answer:1 },
+    { question:"Element symbol 'O'?", choices:["Osmium","Oxygen","Gold","Silver"], answer:1 },
+    { question:"Largest desert?", choices:["Sahara","Arabian","Gobi","Antarctic"], answer:3 },
+    { question:"Currency of Japan?", choices:["Yen","Won","Dollar","Rupee"], answer:0 },
+  ];
+
+  // DOM references
+  const setupArea = document.getElementById('setupArea');
+  const signalAreaElem = document.getElementById('signalArea');
+  const createBtn = document.getElementById('createBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const yourNameInput = document.getElementById('yourName');
+  const signalText = document.getElementById('signalText');
+  const submitSignalBtn = document.getElementById('submitSignalBtn');
+  const playersArea = document.getElementById('playersArea');
+  const player1NameSpan = document.getElementById('player1Name');
+  const player2NameSpan = document.getElementById('player2Name');
+  const gameArea = document.getElementById('gameArea');
+  const questionEl = document.getElementById('question');
+  const gameControls = document.getElementById('gameControls');
+  const nextTurnBtn = document.getElementById('nextTurnBtn');
+  const scoreboard = document.getElementById('scoreboard');
+  const messages = document.getElementById('messages');
+  const activePlayerNameSpan = document.getElementById('activePlayerName');
+
+  let pc;
+  let dataChannel;
+  let isOfferer;
+  let localName = "";
+  let remoteName = "";
+
+  // Game state
+  let gameState = {
+    currentQuestionIndex: 0,
+    playerScores: [0,0],
+    currentPlayer: 0,
+    questionAnswered: false,
+  };
+
+  // Setup RTCPeerConnection and DataChannel
+  function createConnection() {
+    pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    if(isOfferer){
+      dataChannel = pc.createDataChannel("game");
+      setupDataChannel();
+    } else {
+      pc.ondatachannel = (e) => {
+        dataChannel = e.channel;
+        setupDataChannel();
+      };
+    }
+    pc.onicecandidate = (e) => {
+      if(e.candidate) return;
+      signalText.value = JSON.stringify(pc.localDescription);
+    };
+    pc.onconnectionstatechange = () => {
+      if(pc.connectionState === "connected"){
+        messages.textContent = "Connected!";
+        playersArea.style.display = 'block';
+      }
+    };
+  }
+
+  // Setup data channel event handlers
+  function setupDataChannel(){
+    dataChannel.onopen = () => {
+      send({type:'setName', name: localName});
+    };
+    dataChannel.onmessage = (ev) => {
+      const data = JSON.parse(ev.data);
+      if(data.type === 'setName'){
+        remoteName = data.name;
+        updatePlayerNames();
+        checkGameStart();
+      } else if(data.type === 'answer'){
+        handleRemoteAnswer(data.answer);
+      } else if (data.type === 'nextTurn'){
+        startNextTurn();
+      } else if (data.type === 'gameOver'){
+        finishGame();
+        messages.textContent = `${remoteName} ended the game.`;
+      }
+    };
+  }
+
+  // Send message via data channel
+  function send(obj){
+    if(dataChannel && dataChannel.readyState === 'open'){
+      dataChannel.send(JSON.stringify(obj));
+    }
+  }
+
+  function setLocalName(name){
+    localName = name;
+    updatePlayerNames();
+  }
+
+  function updatePlayerNames(){
+    player1NameSpan.textContent = isOfferer ? localName : (remoteName || 'Waiting...');
+    player2NameSpan.textContent = isOfferer ? (remoteName || 'Waiting...') : localName;
+  }
+
+  function checkGameStart(){
+    if(!localName || !remoteName) return;
+    messages.textContent = "Both players connected! Starting game...";
+    setupArea.style.display = 'none';
+    gameArea.style.display = 'block';
+    gameState.currentQuestionIndex = 0;
+    gameState.playerScores = [0,0];
+    gameState.currentPlayer = 0;
+    gameState.questionAnswered = false;
+    renderTurn();
+    updateScores();
+    nextTurnBtn.style.display = 'none';
+    messages.textContent = '';
+  }
+
+  function renderTurn(){
+    gameState.questionAnswered = false;
+    activePlayerNameSpan.textContent = gameState.currentPlayer === 0 ? (isOfferer ? localName : remoteName) : (isOfferer ? remoteName : localName);
+    const q = QUESTIONS[gameState.currentQuestionIndex];
+    questionEl.textContent = `Q${gameState.currentQuestionIndex+1}: ${q.question}`;
+    gameControls.innerHTML = '';
+    q.choices.forEach((choice,i) => {
+      const btn = document.createElement('button');
+      btn.textContent = choice;
+      btn.className = 'choice';
+      btn.disabled = (gameState.currentPlayer === 0 && !isOfferer) || (gameState.currentPlayer === 1 && isOfferer);
+      btn.onclick = () => {
+        if(gameState.questionAnswered) return;
+        selectAnswer(i);
+      };
+      gameControls.appendChild(btn);
+    });
+    nextTurnBtn.style.display = 'none';
+  }
+
+  function selectAnswer(index){
+    gameState.questionAnswered = true;
+    const q = QUESTIONS[gameState.currentQuestionIndex];
+    const correct = index === q.answer;
+    if(correct) gameState.playerScores[gameState.currentPlayer]++;
+    highlightAnswers(index, q.answer);
+    send({type:'answer', answer:index});
+    updateScores();
+    messages.textContent = correct ? "Correct!" : "Wrong!";
+    nextTurnBtn.style.display = 'inline-block';
+  }
+
+  function highlightAnswers(selected, correct){
+    [...gameControls.children].forEach((btn,i) => {
+      btn.disabled = true;
+      if(i === correct){
+        btn.style.backgroundColor = '#27ae60';
+        btn.style.color = 'white';
+      } else if(i === selected){
+        btn.style.backgroundColor = '#c0392b';
+        btn.style.color = 'white';
+      } else {
+        btn.style.backgroundColor = '#34495e';
+        btn.style.color = 'white';
+      }
+    });
+  }
+
+  function handleRemoteAnswer(index){
+    gameState.questionAnswered = true;
+    const q = QUESTIONS[gameState.currentQuestionIndex];
+    const correct = index === q.answer;
+    if(correct) gameState.playerScores[gameState.currentPlayer]++;
+    highlightAnswers(index, q.answer);
+    updateScores();
+    messages.textContent = correct ? "Correct!" : "Wrong!";
+    nextTurnBtn.style.display = 'inline-block';
+  }
+
+  nextTurnBtn.onclick = () => {
+    gameState.currentQuestionIndex++;
+    if(gameState.currentQuestionIndex >= QUESTIONS.length){
+      finishGame();
+      send({type:'gameOver', scores: gameState.playerScores});
+    } else {
+      gameState.currentPlayer = 1 - gameState.currentPlayer;
+      renderTurn();
+      messages.textContent = '';
+      nextTurnBtn.style.display = 'none';
+      send({type:'nextTurn'});
+    }
+  };
+
+  function startNextTurn(){
+    gameState.currentQuestionIndex++;
+    if(gameState.currentQuestionIndex >= QUESTIONS.length){
+      finishGame();
+    } else {
+      gameState.currentPlayer = 1 - gameState.currentPlayer;
+      renderTurn();
+      messages.textContent = '';
+      nextTurnBtn.style.display = 'none';
+    }
+  }
+
+  function updateScores(){
+    player1NameSpan.textContent = `${isOfferer ? localName : remoteName} : ${gameState.playerScores[0]}`;
+    player2NameSpan.textContent = `${isOfferer ? remoteName : localName} : ${gameState.playerScores[1]}`;
+  }
+
+  function finishGame(){
+    questionEl.textContent = "Game Over!";
+    gameControls.innerHTML = '';
+    nextTurnBtn.style.display = 'none';
+    messages.textContent = `Final scores - ${player1NameSpan.textContent}, ${player2NameSpan.textContent}`;
+  }
+
+  // Button click handlers for creating/joining room and submitting signal data
+  const createBtn = document.getElementById('createBtn');
+  const joinBtn = document.getElementById('joinBtn');
+  const submitSignalBtn = document.getElementById('submitSignalBtn');
+
+  createBtn.onclick = async () => {
+    if(!yourNameInput.value) return alert("Enter your name");
+    isOfferer = true;
+    setLocalName(yourNameInput.value);
+    signalAreaElem.style.display = 'block';
+    createConnection();
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+  };
+
+  joinBtn.onclick = async () => {
+    if(!yourNameInput.value) return alert("Enter your name");
+    isOfferer = false;
+    setLocalName(yourNameInput.value);
+    signalAreaElem.style.display = 'block';
+    createConnection();
+  };
+
+  submitSignalBtn.onclick = async () => {
+    try {
+      let sdp = JSON.parse(signalText.value);
+      if(sdp.type === 'offer'){
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        signalText.value = JSON.stringify(pc.localDescription);
+      } else if(sdp.type === 'answer'){
+        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      } else if(sdp.candidate){
+        await pc.addIceCandidate(new RTCIceCandidate(sdp));
+      } else {
+        alert("Invalid signaling data");
+      }
+    } catch (e) {
+      alert("Error processing signaling data: " + e.message);
+    }
+  };
+</script>
+</body>
+</html>

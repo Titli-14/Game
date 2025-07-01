@@ -1,0 +1,22 @@
+const fortunes = [
+    "A thrilling time is in your near future.",
+    "Now is the perfect time to start something new.",
+    "Happiness begins with facing your fears.",
+    "Good fortune is headed your way this week.",
+    "You will find something valuable where you least expect it.",
+    "Adventure can be real happiness.",
+    "You are a person of great wisdom and kindness.",
+    "A stranger will bring good news soon.",
+    "Your hard work will soon pay off.",
+    "Laughter is the best medicine; share it often.",
+    "Unexpected events will open new doors for you.",
+    "Someone dear to you appreciates you deeply.",
+    "You will conquer obstacles by thinking creatively.",
+    "Trust your intuition; it’s guiding you.",
+    "The day you plant the seed is not the day you eat the fruit.",
+    "Your positive attitude will inspire others.",
+    "New opportunities begin with a simple hello.",
+    "Your dreams hold the key to your future.",
+    "Patience is a virtue; good things come in time.",
+    "Bring joy to someone today and receive it back."
+];

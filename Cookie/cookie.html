@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fortune Cookie Simulator</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #fbe8e7 0%, #f7d3cb 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    flex-direction: column;
+    color: #a34747;
+  }
+  h1 {
+    font-family: 'Handlee', cursive;
+    font-size: 3rem;
+    margin-bottom: 24px;
+    text-shadow: 1px 1px 3px rgba(163,71,71,0.3);
+  }
+  #cookie {
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle at 30% 30%, #f8dcc9 30%, #be8665 70%);
+    border-radius: 50%;
+    box-shadow:
+      inset 5px 5px 10px #ebd4c2,
+      6px 6px 15px rgba(131, 80, 60, 0.6);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+  #cookie:active {
+    transform: scale(0.95) rotate(10deg);
+    box-shadow:
+      inset 3px 3px 7px #d4bea2,
+      3px 3px 10px rgba(131, 80, 60, 0.8);
+  }
+  .crack {
+    position: absolute;
+    background: #91684c;
+    border-radius: 2px;
+  }
+  /* Crack lines */
+  .crack1 { top: 40px; left: 90px; width: 4px; height: 40px; transform: rotate(10deg);}
+  .crack2 { top: 60px; left: 80px; width: 3px; height: 20px; transform: rotate(-20deg);}
+  .crack3 { top: 50px; left: 95px; width: 4px; height: 30px; transform: rotate(30deg);}
+  .crack4 { top: 80px; left: 92px; width: 3px; height: 15px; transform: rotate(-35deg);}
+  #fortune {
+    margin-top: 40px;
+    font-size: 1.5rem;
+    max-width: 350px;
+    padding: 20px;
+    background: rgba(179, 114, 87, 0.2);
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 0 12px rgba(179,114,87,0.3);
+    min-height: 70px;
+  }
+  #footer {
+    margin-top: 60px;
+    font-size: 0.9rem;
+    color: #7f4545;
+  }
+</style>
+</head>
+<body>
+<h1>Fortune Cookie Simulator</h1>
+<div id="cookie" role="button" tabindex="0" aria-label="Click to get a new fortune">
+  <div class="crack crack1"></div>
+  <div class="crack crack2"></div>
+  <div class="crack crack3"></div>
+  <div class="crack crack4"></div>
+</div>
+<div id="fortune" aria-live="polite" aria-atomic="true">Click the cookie for your fortune!</div>
+<div id="footer">© 2025 Cozy Interactive</div>
+<script>
+  const cookie = document.getElementById('cookie');
+  const fortuneEl = document.getElementById('fortune');
+
+  const fortunes = [
+    "A thrilling time is in your near future.",
+    "Now is the perfect time to start something new.",
+    "Happiness begins with facing your fears.",
+    "Good fortune is headed your way this week.",
+    "You will find something valuable where you least expect it.",
+    "Adventure can be real happiness.",
+    "You are a person of great wisdom and kindness.",
+    "A stranger will bring good news soon.",
+    "Your hard work will soon pay off.",
+    "Laughter is the best medicine; share it often.",
+    "Unexpected events will open new doors for you.",
+    "Someone dear to you appreciates you deeply.",
+    "You will conquer obstacles by thinking creatively.",
+    "Trust your intuition; it’s guiding you.",
+    "The day you plant the seed is not the day you eat the fruit.",
+    "Your positive attitude will inspire others.",
+    "New opportunities begin with a simple hello.",
+    "Your dreams hold the key to your future.",
+    "Patience is a virtue; good things come in time.",
+    "Bring joy to someone today and receive it back."
+  ];
+
+  function getRandomFortune() {
+    return fortunes[Math.floor(Math.random() * fortunes.length)];
+  }
+
+  function showFortune() {
+    fortuneEl.textContent = "Fetching your fortune...";
+    setTimeout(() => {
+      const fortune = getRandomFortune();
+      fortuneEl.textContent = fortune;
+    }, 600);
+  }
+
+  cookie.addEventListener('click', showFortune);
+  cookie.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' ') {
+      showFortune();
+      e.preventDefault();
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Doodle Zone - Interactive Doodling Pad</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #f6f9fc, #e1e8f0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  header {
+    padding: 16px 24px;
+    background-color: #335c67;
+    color: white;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+  }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+  }
+  #canvasWrapper {
+    position: relative;
+    border: 2px solid #557a95;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    border-radius: 12px;
+    background: white;
+    cursor: crosshair;
+  }
+  #controls {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    max-width: 600px;
+  }
+  button, select {
+    background-color: #557a95;
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: background-color 0.25s ease;
+  }
+  button:hover, select:hover {
+    background-color: #344e63;
+  }
+  label {
+    display: flex;
+    align-items: center;
+    color: #335c67;
+    font-weight: 600;
+  }
+  input[type="range"] {
+    margin-left: 8px;
+    cursor: pointer;
+  }
+  @media (max-width: 640px) {
+    #controls {
+      flex-direction: column;
+      align-items: center;
+    }
+    button, select {
+      width: 90%;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  Doodle Zone
+</header>
+<main>
+  <div id="canvasWrapper">
+    <canvas id="doodleCanvas" width="600" height="400" aria-label="Doodle drawing area"></canvas>
+  </div>
+  <div id="controls" role="region" aria-label="Doodle controls">
+    <button id="clearBtn" aria-label="Clear Canvas">Clear</button>
+    <button id="randomColorBtn" aria-label="Set Random Color">Random Color</button>
+    <label for="brushSize">Brush Size
+      <input type="range" id="brushSize" min="1" max="30" value="5" aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" />
+    </label>
+    <label for="brushStyle">Brush Style
+      <select id="brushStyle" aria-label="Select brush style">
+        <option value="round">Round</option>
+        <option value="square">Square</option>
+        <option value="butt">Butt</option>
+      </select>
+    </label>
+    <button id="saveBtn" aria-label="Download your artwork">Download</button>
+  </div>
+</main>
+<script>
+  (function() {
+    const canvas = document.getElementById('doodleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let painting = false;
+    let brushColor = getRandomColor();
+    let brushSize = 5;
+    let brushStyle = 'round';
+
+    // Initialize context styles
+    ctx.lineCap = brushStyle;
+    ctx.lineWidth = brushSize;
+    ctx.strokeStyle = brushColor;
+
+    function getRandomColor() {
+      // Generate random bright color in HSL for variety
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 80%, 60%)`;
+    }
+
+    function startPosition(e) {
+      painting = true;
+      draw(e);
+    }
+    function finishedPosition() {
+      painting = false;
+      ctx.beginPath();
+    }
+    function draw(e) {
+      if (!painting) return;
+
+      // Get canvas relative position
+      const rect = canvas.getBoundingClientRect();
+      let x, y;
+
+      if(e.touches){
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+      } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      }
+
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
+
+    // Event listeners for mouse and touch
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', finishedPosition);
+    canvas.addEventListener('mouseout', finishedPosition);
+    canvas.addEventListener('mousemove', draw);
+
+    canvas.addEventListener('touchstart', startPosition);
+    canvas.addEventListener('touchend', finishedPosition);
+    canvas.addEventListener('touchcancel', finishedPosition);
+    canvas.addEventListener('touchmove', draw);
+
+    // Controls
+    const clearBtn = document.getElementById('clearBtn');
+    const randomColorBtn = document.getElementById('randomColorBtn');
+    const brushSizeInput = document.getElementById('brushSize');
+    const brushStyleSelect = document.getElementById('brushStyle');
+    const saveBtn = document.getElementById('saveBtn');
+
+    clearBtn.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    randomColorBtn.addEventListener('click', () => {
+      brushColor = getRandomColor();
+      ctx.strokeStyle = brushColor;
+      showColorFeedback(brushColor);
+    });
+
+    brushSizeInput.addEventListener('input', (e) => {
+      brushSize = e.target.value;
+      ctx.lineWidth = brushSize;
+    });
+
+    brushStyleSelect.addEventListener('change', (e) => {
+      brushStyle = e.target.value;
+      ctx.lineCap = brushStyle;
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'my-doodle.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Optional: show brush current color briefly
+    function showColorFeedback(color) {
+      const feedback = document.createElement('div');
+      feedback.style.position = 'fixed';
+      feedback.style.bottom = '20px';
+      feedback.style.right = '20px';
+      feedback.style.width = '40px';
+      feedback.style.height = '40px';
+      feedback.style.borderRadius = '50%';
+      feedback.style.backgroundColor = color;
+      feedback.style.boxShadow = '0 0 15px ' + color;
+      feedback.style.zIndex = 1000;
+      feedback.style.opacity = '0.9';
+      document.body.appendChild(feedback);
+      setTimeout(() => {
+        feedback.style.transition = 'opacity 0.6s';
+        feedback.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(feedback), 600);
+      }, 700);
+    }
+  })();
+</script>
+</body>
+</html>
+
